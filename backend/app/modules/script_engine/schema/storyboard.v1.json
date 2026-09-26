@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "storyboard.v1.json",
+  "title": "YYC³ 分镜剧本协议 v1.0（StoryboardV1）",
+  "description": "单集分镜剧本 12 字段顶层结构 + Shot 子结构 12 字段。与前端 yyc3-ai-manju-studio/frontend/src/types/storyboard.ts 严格同构；节奏窗口：单集 80-120 镜头（校验器按前端规则输出 [警告] 级错误行）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version", "project_id", "episode_id", "episode_title", "style_ref",
+    "character_refs", "total_shots", "hook_shots", "shots",
+    "created_at", "updated_at", "trace_id"
+  ],
+  "properties": {
+    "version": { "type": "string", "const": "1.0", "description": "协议版本，当前 1.0" },
+    "project_id": { "type": "string", "minLength": 1, "description": "项目 ID" },
+    "episode_id": { "type": "string", "minLength": 1, "description": "单集 ID，如 ep01" },
+    "episode_title": { "type": "string", "minLength": 1, "description": "单集标题" },
+    "style_ref": { "type": "string", "minLength": 1, "description": "风格参考（提示词或参考图 ID）" },
+    "character_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "出场角色一致性锚定 ID 列表（关联角色资产库）"
+    },
+    "total_shots": { "type": "integer", "minimum": 1, "description": "镜头总数，必须等于 shots 数组长度" },
+    "hook_shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "钩子镜头 ID 列表，非空，且每一项必须指向 hook_flag=true 的镜头"
+    },
+    "shots": { "$ref": "#/definitions/shotList" },
+    "created_at": { "type": "string", "format": "date-time", "description": "创建时间 ISO 8601" },
+    "updated_at": { "type": "string", "format": "date-time", "description": "更新时间 ISO 8601" },
+    "trace_id": { "type": "string", "pattern": "^trace-", "description": "全链路追踪 ID（trace-YYYYMMDD-xxxxxx）" }
+  },
+  "definitions": {
+    "shotList": {
+      "type": "array",
+      "minItems": 1,
+      "description": "镜头列表；节奏窗口 80-120（越界由校验器输出 [警告] 行，Schema 层不硬拦）",
+      "items": { "$ref": "#/definitions/shot" }
+    },
+    "shot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shot_id", "scene_id", "description", "shot_type", "camera_move",
+        "dialogue", "duration_sec", "image_prompt", "sfx", "bgm",
+        "hook_flag", "consistency_anchor"
+      ],
+      "properties": {
+        "shot_id": { "type": "string", "pattern": "^shot-", "description": "镜头 ID，如 shot-ep01-001" },
+        "scene_id": { "type": "string", "minLength": 1, "description": "所属场景 ID" },
+        "description": { "type": "string", "minLength": 1, "description": "画面描述" },
+        "shot_type": { "type": "string", "enum": ["远", "全", "中", "近", "特"], "description": "景别" },
+        "camera_move": { "type": "string", "enum": ["推", "拉", "摇", "移", "跟", "固定"], "description": "运镜方式" },
+        "dialogue": { "type": "string", "description": "台词（可为空字符串）" },
+        "duration_sec": { "type": "number", "exclusiveMinimum": 0, "maximum": 6, "description": "时长（秒），3-6 秒节奏上限，快剪可低至 1 秒" },
+        "image_prompt": { "type": "string", "minLength": 1, "description": "文生图提示词" },
+        "sfx": { "type": "string", "description": "音效描述（可为空字符串）" },
+        "bgm": { "type": "string", "description": "背景音乐描述（可为空字符串）" },
+        "hook_flag": { "type": "boolean", "description": "是否钩子镜头（前 3 秒留人点 / 结尾悬念）" },
+        "consistency_anchor": { "type": "string", "minLength": 1, "description": "角色一致性锚定 ID（无角色镜头用 narrator）" }
+      }
+    }
+  }
+}
