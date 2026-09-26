@@ -179,12 +179,16 @@ def draft_storyboard(project_id: str, episode: dict, elements: dict,
     shots = shots[: SHOT_COUNT_RANGE[1]]
 
     # 钩子标记：首镜（前 3 秒留人）+ 末镜（下集悬念）+ 钩子句所在镜
-    if shots:
-        shots[0]["hook_flag"] = True
-        shots[-1]["hook_flag"] = True
+    # TC-G3-008：钩子镜头 image_prompt 追加「【钩子镜头】」标记，与普通镜头可区分
+    hook_ids = {shots[0]["shot_id"], shots[-1]["shot_id"]} if shots else set()
     for s in shots:
         if hook_line and hook_line[:10] in s["description"]:
+            hook_ids.add(s["shot_id"])
+    for s in shots:
+        if s["shot_id"] in hook_ids:
             s["hook_flag"] = True
+            if "【钩子镜头】" not in s["image_prompt"]:
+                s["image_prompt"] += "，【钩子镜头】情绪强化构图"
     hook_shots = [s["shot_id"] for s in shots if s["hook_flag"]] or [shots[0]["shot_id"]]
 
     return {
