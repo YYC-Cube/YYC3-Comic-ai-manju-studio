@@ -42,6 +42,7 @@ class FaceEncoder:
     def __init__(self, library_root: Optional[str] = None):
         self.library_root = library_root or _library_root()
         self.mode = "degraded"  # 默认降级，真实模型加载成功后切换
+        self.last_mode = None  # 最近一次 extract_feature 的实际来源（G3-002 透明留证）
         self._real_encoder = None
         self._real_dim = None
         self._try_load_real_model()
@@ -90,11 +91,16 @@ class FaceEncoder:
             try:
                 vec = self._extract_real(raw_bytes)
                 if vec is not None:
+                    self.last_mode = self.mode
                     return self._normalize(vec)
+                logger.warning(
+                    f"[face_encoder] {path.name} 未检出人脸，该帧降级哈希模式"
+                    "（降级留证：跨镜头相似度将不可信，须更换素材或调参）")
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"[face_encoder] 真实提取失败，降级：{e}")
 
         # 降级：确定性哈希 512 维向量
+        self.last_mode = "degraded"
         return self._degraded_feature(raw_bytes)
 
     def _extract_real(self, raw_bytes: bytes) -> Optional[np.ndarray]:
