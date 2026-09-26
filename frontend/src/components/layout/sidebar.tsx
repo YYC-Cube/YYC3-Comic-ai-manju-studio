@@ -3,8 +3,7 @@
 /**
  * 左侧固定导航栏（240px，深色主题）
  */
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
   BookOpen,
   Clapperboard,
@@ -17,7 +16,8 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface NavItem {
   label: string;
@@ -43,11 +43,13 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-zinc-950 text-zinc-300">
       {/* 品牌区 */}
-      <div className="flex h-14 items-center border-b border-zinc-800 px-5">
-        <span className="text-sm font-semibold tracking-wide text-white">
-          YYC³ AI Family
-        </span>
-        <span className="ml-2 text-xs text-zinc-500">漫剧工场</span>
+      <div className="flex h-14 items-center gap-2 border-b border-zinc-800 px-5">
+        <img
+          src="/yyc3-icons/logo.svg"
+          alt="YYC³"
+          className="h-6 w-auto invert"
+        />
+        <span className="ml-1 text-xs text-zinc-500">漫剧工场</span>
       </div>
 
       {/* 导航 */}

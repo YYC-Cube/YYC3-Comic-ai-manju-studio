@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   title: "YYC³ 漫剧工作台",
   description:
     "YYC³ AI Family 漫剧生产线前端工作台：生产监控、成本核算、剧本分镜、时间线剪辑一体化",
+  icons: {
+    icon: [
+      { url: "/yyc3-icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/yyc3-icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/yyc3-icons/apple-touch-icon.png",
+  },
+  manifest: "/yyc3-icons/manifest.json",
 };
 
 export default function RootLayout({
