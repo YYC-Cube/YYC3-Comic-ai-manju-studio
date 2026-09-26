@@ -53,6 +53,10 @@ build/
 *.jpeg
 models/
 !**/models/**/.gitkeep
+# ── 品牌 logo 例外（yyc3-icons 小尺寸图标可入库，非模型/成片资产）──
+!**/yyc3-icons/*.png
+!**/yyc3-icons/*.jpg
+!**/yyc3-icons/*.jpeg
 
 # ── IDE / 系统 ──
 .vscode/
