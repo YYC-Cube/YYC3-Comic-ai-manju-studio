@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "YYC³ 漫剧工作台",
@@ -15,12 +16,14 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="font-sans">
-        <Sidebar />
-        {/* 侧栏固定 240px（w-60），主内容区左侧让位 */}
-        <div className="pl-60">
-          <Topbar />
-          <main className="mx-auto max-w-[1400px] p-6">{children}</main>
-        </div>
+        <Providers>
+          <Sidebar />
+          {/* 侧栏固定 240px（w-60），主内容区左侧让位 */}
+          <div className="pl-60">
+            <Topbar />
+            <main className="mx-auto max-w-[1400px] p-6">{children}</main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

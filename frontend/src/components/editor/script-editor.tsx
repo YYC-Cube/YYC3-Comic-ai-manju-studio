@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 import { mockStoryboard } from "@/lib/mock-data";
 import type { StoryboardV1 } from "@/types/storyboard";
 import { Film, Loader2, Sparkles } from "lucide-react";
@@ -47,6 +48,7 @@ export function ScriptEditor({ projectId, className }: ScriptEditorProps) {
   const [storyboard, setStoryboard] = useState<StoryboardV1 | null>(null);
   const [loading, setLoading] = useState<"generate" | "extract" | null>(null);
   const [isMock, setIsMock] = useState(false);
+  const { toast } = useToast();
 
   const handleGenerate = async () => {
     setLoading("generate");
@@ -57,6 +59,11 @@ export function ScriptEditor({ projectId, className }: ScriptEditorProps) {
     setResult(data);
     setIsMock(mock);
     setLoading(null);
+    toast({
+      title: mock ? "剧本生成完成（演示数据）" : "剧本生成完成",
+      description: `解析出 ${data.characters.length} 个角色 · ${data.scenes.length} 个场景`,
+      variant: mock ? "warning" : "success",
+    });
   };
 
   const handleExtract = async () => {
@@ -73,6 +80,11 @@ export function ScriptEditor({ projectId, className }: ScriptEditorProps) {
     setStoryboard(data);
     setIsMock(mock);
     setLoading(null);
+    toast({
+      title: mock ? "分镜提取完成（演示数据）" : "分镜提取完成",
+      description: `共 ${data.total_shots} 镜 · ${data.hook_shots.length} 个钩子镜头`,
+      variant: mock ? "warning" : "success",
+    });
   };
 
   return (
