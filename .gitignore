@@ -78,3 +78,4 @@ storage/logs/*
 .coverage
 htmlcov/
 coverage/
+face_library/
