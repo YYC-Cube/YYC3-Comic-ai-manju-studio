@@ -83,3 +83,8 @@ storage/logs/*
 htmlcov/
 coverage/
 face_library/
+# G3 预研特征库变体（二进制落 NAS，不入仓库）
+face_library_*/
+
+# ── 工具状态目录（不入仓库）──
+.mimosa/
