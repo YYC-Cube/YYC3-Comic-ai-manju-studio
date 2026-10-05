@@ -75,8 +75,17 @@ export async function withFallback<T>(
     const data = await realFn();
     return { data, isMock: false };
   } catch (err) {
+    // P3 修复（2026-10-05 首审）：区分错误类型——仅「后端不可实现」场景降级
+    // mock（网络/超时错误、5xx、404 未实现）；4xx 业务错误（参数错/鉴权失败）
+    // 原样上抛，联调期不再系统性掩盖服务端业务问题
+    const status = err instanceof ApiError ? err.status : undefined;
+    const fallbackable =
+      status === undefined || status >= 500 || status === 404;
+    if (!fallbackable) {
+      throw err;
+    }
     console.warn(
-      "[API 降级] 后端不可达，使用演示数据：",
+      "[API 降级] 后端不可达或未实现，使用演示数据：",
       err instanceof Error ? err.message : err
     );
     return { data: await mockFn(), isMock: true };

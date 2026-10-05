@@ -27,18 +27,27 @@ export function useApiFallback<T>(
   const [isMock, setIsMock] = useState(false);
   const [tick, setTick] = useState(0);
 
-  // 用 ref 固化最新回调，避免回调身份变化导致循环请求
+  // 用 ref 固化最新回调，避免回调身份变化导致循环请求。
+  // P3 修复（2026-10-05 首审 lint）：ref 写入移入 effect（React Compiler 规则
+  // 禁止 render 期间写 ref.current）
   const fnRef = useRef(fn);
   const mockRef = useRef(mockFn);
-  fnRef.current = fn;
-  mockRef.current = mockFn;
+  useEffect(() => {
+    fnRef.current = fn;
+    mockRef.current = mockFn;
+  });
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    // P3 修复：重置态经微任务置位——避开 effect 内同步 setState
+    // （react-hooks/set-state-in-effect，级联渲染风险），视觉延迟可忽略
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
 
     withFallback(() => fnRef.current(), () => mockRef.current())
       .then(({ data: result, isMock: mock }) => {

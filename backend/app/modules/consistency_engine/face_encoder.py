@@ -11,6 +11,7 @@ import hashlib
 import json
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -160,7 +161,7 @@ class FaceEncoder:
             "source_image": str(image_path),
             "dim": int(vec.shape[0]),
             "mode": self.mode,
-            "created_at": __import__("datetime").datetime.now().isoformat(),
+            "created_at": datetime.now().isoformat(),
         }
         (char_dir / "manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"

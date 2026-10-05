@@ -30,13 +30,16 @@ def plan_episodes(chapters: list, episode_seconds: int = 105,
     episodes = []
     buf, src, idx = [], [], 1
 
+    # P3 优化（2026-10-05 首审）：buf_len 累加器替代逐句 sum(len)（O(n²)→O(n)）
+    buf_len = 0
+
     def _flush():
-        nonlocal buf, src, idx
+        nonlocal buf, src, idx, buf_len
         if not buf:
             return
         content = "\n".join(buf).strip()
         if not content:
-            buf, src = [], []
+            buf, src, buf_len = [], [], 0
             return
         hook = hook_detector.episode_hook(content)
         title = _derive_title(content, src)
@@ -49,7 +52,7 @@ def plan_episodes(chapters: list, episode_seconds: int = 105,
             "hook_line": hook["sentence"],
             "hook_type": hook["type"],
         })
-        buf, src = [], []
+        buf, src, buf_len = [], [], 0
         idx += 1
 
     for ch in chapters:
@@ -58,11 +61,12 @@ def plan_episodes(chapters: list, episode_seconds: int = 105,
                      if m.group(0).strip()]
         for s in sentences:
             buf.append(s)
+            buf_len += len(s)
             src.append(ch["chapter_id"])
-            if sum(len(x) for x in buf) >= budget:
+            if buf_len >= budget:
                 _flush()
         # 章末残留不足半集预算则继续留桶（跨章聚合）
-        if buf and sum(len(x) for x in buf) >= budget // 2:
+        if buf and buf_len >= budget // 2:
             _flush()
     _flush()
     return episodes

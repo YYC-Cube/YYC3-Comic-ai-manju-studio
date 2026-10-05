@@ -20,7 +20,7 @@ MAX_ATTEMPTS = 2           # 打回重绘上限（超限转人工，防死循环
 class AnchorGuard:
     """一致性锚定守卫：生成前锚定 / 生成中约束 / 生成后打回闭环"""
 
-    def __init__(self, library_root: str = None,
+    def __init__(self, library_root: str | None = None,
                  threshold: float = DEFAULT_THRESHOLD,
                  max_attempts: int = MAX_ATTEMPTS):
         self.encoder = FaceEncoder(library_root=library_root)

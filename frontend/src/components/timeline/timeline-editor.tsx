@@ -4,11 +4,11 @@
  * 时间线编辑器：标尺 + 视频轨 + 音频轨 + 播放头 + 缩放
  * 纯 React 实现，无第三方播放器依赖
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Pause, Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDuration } from "@/lib/utils";
 import type { Shot } from "@/types/storyboard";
+import { Minus, Pause, Plus, Star } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface TimelineEditorProps {
   shots: Shot[];
@@ -66,13 +66,18 @@ export function TimelineEditor({ shots, initialPxPerSec = 48, className }: Timel
     ticks.push(t);
   }
 
-  // 按 trackLeft 定位镜头块
-  let cursor = 0;
-  const videoBlocks = shots.map((shot) => {
-    const left = cursor;
-    cursor += shot.duration_sec;
-    return { shot, left };
-  });
+  // 按 trackLeft 定位镜头块（P3 修复 2026-10-05 lint：reduce 累积替代闭包内
+  // 重赋值 render 局部变量——React Compiler 规则）
+  const videoBlocks = shots.reduce<{ shot: Shot; left: number }[]>(
+    (acc, shot) => {
+      const left = acc.length
+        ? acc[acc.length - 1].left + acc[acc.length - 1].shot.duration_sec
+        : 0;
+      acc.push({ shot, left });
+      return acc;
+    },
+    []
+  );
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -147,45 +152,32 @@ export function TimelineEditor({ shots, initialPxPerSec = 48, className }: Timel
             ))}
           </div>
 
-          {/* 音频轨：BGM 上半 / SFX 下半 */}
-          {(() => {
-            let bgmLeft = 0;
-            let sfxLeft = 0;
-            return (
-              <div className="relative mt-1 h-10">
-                {shots.map((shot) => {
-                  const bgmBlock = shot.bgm ? (
-                    <div
-                      key={`bgm-${shot.shot_id}`}
-                      className="absolute left-0 top-0 h-4 truncate rounded-sm bg-emerald-500/25 px-1.5 text-[10px] leading-4 text-emerald-700"
-                      style={{ left: bgmLeft * pxPerSec, width: shot.duration_sec * pxPerSec - 2 }}
-                      title={`BGM：${shot.bgm}`}
-                    >
-                      {shot.bgm}
-                    </div>
-                  ) : null;
-                  const sfxBlock = shot.sfx ? (
-                    <div
-                      key={`sfx-${shot.shot_id}`}
-                      className="absolute bottom-0 h-4 truncate rounded-sm bg-amber-500/25 px-1.5 text-[10px] leading-4 text-amber-700"
-                      style={{ left: sfxLeft * pxPerSec, width: shot.duration_sec * pxPerSec - 2 }}
-                      title={`音效：${shot.sfx}`}
-                    >
-                      {shot.sfx}
-                    </div>
-                  ) : null;
-                  bgmLeft += shot.duration_sec;
-                  sfxLeft += shot.duration_sec;
-                  return (
-                    <div key={`audio-${shot.shot_id}`}>
-                      {bgmBlock}
-                      {sfxBlock}
-                    </div>
-                  );
-                })}
+          {/* 音频轨：BGM 上半 / SFX 下半（P3 修复 2026-10-05 lint：复用
+              videoBlocks 前缀和定位，替代闭包内重赋值——react-hooks/immutability） */}
+          <div className="relative mt-1 h-10">
+            {videoBlocks.map(({ shot, left }) => (
+              <div key={`audio-${shot.shot_id}`}>
+                {shot.bgm ? (
+                  <div
+                    className="absolute left-0 top-0 h-4 truncate rounded-sm bg-emerald-500/25 px-1.5 text-[10px] leading-4 text-emerald-700"
+                    style={{ left: left * pxPerSec, width: shot.duration_sec * pxPerSec - 2 }}
+                    title={`BGM：${shot.bgm}`}
+                  >
+                    {shot.bgm}
+                  </div>
+                ) : null}
+                {shot.sfx ? (
+                  <div
+                    className="absolute bottom-0 h-4 truncate rounded-sm bg-amber-500/25 px-1.5 text-[10px] leading-4 text-amber-700"
+                    style={{ left: left * pxPerSec, width: shot.duration_sec * pxPerSec - 2 }}
+                    title={`音效：${shot.sfx}`}
+                  >
+                    {shot.sfx}
+                  </div>
+                ) : null}
               </div>
-            );
-          })()}
+            ))}
+          </div>
 
           {/* 播放头 */}
           <div

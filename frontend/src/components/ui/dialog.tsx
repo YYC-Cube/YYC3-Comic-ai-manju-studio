@@ -65,13 +65,16 @@ interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
 const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
   ({ className, children, closeOnOverlayClick = true, ...props }, ref) => {
     const { open, setOpen } = useDialog();
-    const [mounted, setMounted] = React.useState(false);
     const dialogRef = React.useRef<HTMLDivElement>(null);
 
-    // SSR 安全：挂载后再渲染 Portal
-    React.useEffect(() => {
-      setMounted(true);
-    }, []);
+    // SSR 安全：挂载后再渲染 Portal（P3 修复 2026-10-05 lint：
+    // useSyncExternalStore 实现 hydration 安全 mounted，替代 effect 内
+    // 同步 setState——react-hooks/set-state-in-effect）
+    const mounted = React.useSyncExternalStore(
+      () => () => {},
+      () => true,
+      () => false
+    );
 
     // 打开时锁定滚动 + ESC 关闭
     React.useEffect(() => {

@@ -59,11 +59,14 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
       validationErrors: validateStoryboard(next),
     });
 
-    // 同步后端：失败静默（mock 演示场景常态）
+    // 同步后端：失败保持本地态但留痕（P3 修复 2026-10-05：不再完全静默）
     try {
       await apiUpdateShot(sb.episode_id, shotId, patch);
-    } catch {
-      // 后端不可达时保持本地态即可
+    } catch (err) {
+      console.warn(
+        `[storyboard] 镜头 ${shotId} 后端同步失败，保持本地态：`,
+        err instanceof Error ? err.message : err
+      );
     }
   },
 
