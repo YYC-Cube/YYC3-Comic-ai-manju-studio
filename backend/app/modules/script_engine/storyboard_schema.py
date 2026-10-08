@@ -33,6 +33,37 @@ SHOT_COUNT_RANGE = (80, 120)  # 单集节奏窗口（前端同款规则）
 _SENT_RE = re.compile(r"[^。！？!?…\n]+[。！？!?…]*")
 _CLAUSE_RE = re.compile(r"[^，,；;。！？!?…]+[，,；;]?")
 
+# YYC3-74 G4：按景别注入构图词（对齐出图模型的空间先验，
+# 防止「portrait 前缀主导 → 全部塌缩成半身像」的景别塌缩）。
+# 英文构图词供 SDXL 生效（中文会被 CLIP tokenizer 弱化）；景别由
+# 构图词硬约束，而非旧 REF_STYLE 的「portrait of…」前缀
+SHOT_TYPE_COMPOSITION = {
+    "远": "extreme wide establishing shot, tiny distant figure, full environment vista",
+    "全": "full shot, head-to-toe figure, complete surrounding environment",
+    "中": "medium shot, knees-up framing, partial environment",
+    "近": "close-up shot, chest-up framing, clear facial expression",
+    "特": "extreme close-up, facial detail, shallow depth of field",
+}
+
+# YYC3-74 G3：补拍空镜/反应镜模板池（占位不再同文复制；
+# 描述互异使 plan_integrity 占位复制拦截可校验）
+BROLL_POOL = ("檐角风铃轻晃，烛影摇动",
+              "药柜抽屉层层错落，标签斑驳",
+              "青石巷面雨光反光，人影稀疏",
+              "灯笼长影掠过墙面，尘埃浮沉",
+              "窗纸透进月光，桌上一盏冷茶",
+              "铜炉青烟笔直上升，火光明灭")
+REACTION_POOL = ("眉头微蹙，指尖收紧",
+                 "指尖停在半空，呼吸一滞",
+                 "瞳孔微缩，握紧了袖口",
+                 "侧身避光，目光扫过角落")
+# 补拍镜多样性封顶：池内不重复（54 镜同文复制的产线级教训）；
+# 超出封顶后宁缺勿滥——完成度由 gate_completeness 显式告警
+FILLER_CAP = len(BROLL_POOL) + len(REACTION_POOL)
+
+# 补拍占位标记（与 scripts/run_quality_review.py gate_plan_integrity 同源同值）
+PLACEHOLDER_MARK = "补拍"
+
 
 def load_schema() -> dict:
     """加载 storyboard.v1.json（jsonschema 不可用时也可读取供人工比对）"""
@@ -85,6 +116,19 @@ def validate_storyboard(sb: dict) -> dict:
                 errors.append(f"hook_shots 中的 {hid} 不存在于 shots 列表")
             elif flag_map[hid] is not True:
                 errors.append(f"镜头 {hid} 的 hook_flag 为 false，与 hook_shots 声明矛盾")
+            elif PLACEHOLDER_MARK in next(
+                    (s.get("description", "") for s in shots or []
+                     if s.get("shot_id") == hid), ""):
+                errors.append(f"钩子镜头 {hid} 不得为补拍占位（YYC3-74 G3）")
+
+    # YYC3-74 G3：占位复制硬拦截（54 镜同文「檐角风铃」的产线级教训——
+    # 同描述即节奏与画面双重同质，规则草稿期就该打回）
+    desc_cnt: dict = {}
+    for s in shots or []:
+        desc_cnt[s.get("description", "")] = desc_cnt.get(s.get("description", ""), 0) + 1
+    for dsc, cnt in desc_cnt.items():
+        if cnt > 1:
+            errors.append(f"占位复制：{cnt} 镜同描述「{dsc[:20]}…」（YYC3-74 G3）")
 
     return {"valid": not errors, "errors": errors, "warnings": warnings}
 
@@ -128,6 +172,16 @@ def draft_storyboard(project_id: str, episode: dict, elements: dict,
         clauses = [c for c in _CLAUSE_RE.findall(sent) if c.strip()]
         units.extend(clauses if len(sent) > 30 and len(clauses) > 1 else [sent])
 
+    # YYC3-74 G4：子句切分会把「……」郎中头也不抬，」这类孤儿尾段（闭引号
+    # 被切进下一单元）独立成镜——并回前一个单元，保证 dialogue 引号完整
+    cleaned: list = []
+    for u in units:
+        if u.startswith("」") and cleaned:
+            cleaned[-1] += u
+        else:
+            cleaned.append(u)
+    units = cleaned
+
     shots, i = [], 0
     scene_of = lambda k: scenes[k % len(scenes)] if scenes else "室内"  # noqa: E731
 
@@ -140,6 +194,11 @@ def draft_storyboard(project_id: str, episode: dict, elements: dict,
             shot_type = "远"
         camera = ("推" if k % 5 == 0 else "固定" if is_dialogue
                   else ("摇" if k % 4 == 0 else "移"))
+        # YYC3-74 G4：image_prompt 结构 = 场景前置 + 景别构图词 + 内容 + 风格后置。
+        # 旧模板「{style_ref}，{场景}，{内容}」中风格前缀主导出图（全部塌缩成
+        # 同一女性半身像）；构图词承接 shot_type，使远/中/近景真正拉开景别
+        image_prompt = (f"{scene_of(k)}，{SHOT_TYPE_COMPOSITION[shot_type]}，"
+                        f"{text[:40]}，{style_ref}")
         return {
             "shot_id": f"shot-{ep_id}-{k + 1:03d}",
             "scene_id": f"sc-{ep_id}-{k // 10 + 1:02d}",
@@ -148,39 +207,69 @@ def draft_storyboard(project_id: str, episode: dict, elements: dict,
             "camera_move": camera,
             "dialogue": text if is_dialogue else "",
             "duration_sec": 1.5 if is_dialogue else (1.0 if len(text) <= 8 else 2.0),
-            "image_prompt": f"{style_ref}，{scene_of(k)}，{text[:40]}",
+            "image_prompt": image_prompt,
             "sfx": "环境音" if not is_dialogue else "",
             "bgm": "紧张弦乐" if episode.get("hook_type") in ("悬念", "反转") else "古风轻配乐",
             "hook_flag": False,
             "consistency_anchor": speaker or "narrator",
         }
 
-    for u in units:
-        shots.append(_mk(u, i))
-        i += 1
+    content_shots = [_mk(u, i) for i, u in enumerate(units)]
 
-    # 补足到 80 镜：交替插入反应镜头（近）与场景空镜（远），描述显式标注补拍
-    fillers = 0
-    while len(shots) < SHOT_COUNT_RANGE[0]:
-        k = len(shots)
-        if fillers % 2 == 0 and characters:
-            who = characters[fillers % len(characters)]
-            text = f"（补拍·反应镜头）{who} 眉头微蹙，指尖收紧"
-            shot_type, anchor = "近", who
+    # YYC3-74 G3 补拍镜治理：①池交错切片（空镜 6 条 × 反应 4 条交错取用，
+    # 截 need 个天然互异——轮转回绕会撞文触发占位复制拦截）；②FILLER_CAP
+    # 封顶宁缺勿滥——不再硬凑 80 镜制造 54 镜同文占位，完成度缺口由
+    # gate_completeness 显式告警；③Bresenham 均匀交错 + 尾镜保底正片
+    need = min(max(SHOT_COUNT_RANGE[0] - len(content_shots), 0), FILLER_CAP)
+    filler_pool = []
+    for bi in range(max(len(BROLL_POOL), len(REACTION_POOL))):
+        if bi < len(BROLL_POOL):
+            filler_pool.append(("远", "narrator", scene_of(bi), BROLL_POOL[bi],
+                                f"（补拍·空镜）{scene_of(bi)}，{BROLL_POOL[bi]}"))
+        if bi < len(REACTION_POOL) and characters:
+            who = characters[bi % len(characters)]
+            filler_pool.append(("近", who, scene_of(bi),
+                                f"{who}，{REACTION_POOL[bi]}",
+                                f"（补拍·反应）{who}，{REACTION_POOL[bi]}"))
+    fillers = []
+    for j, (st, anchor, scene, core, text) in enumerate(filler_pool[:need]):
+        shot = _mk(text, len(content_shots) + j)
+        # image_prompt 与补拍镜实际景别/场景同步重写（_mk 默认按内容镜逻辑生成）
+        shot.update(
+            shot_type=st, consistency_anchor=anchor, dialogue="", duration_sec=1.0,
+            image_prompt=(f"{scene}，{SHOT_TYPE_COMPOSITION[st]}，"
+                          f"{core}，{style_ref}"))
+        fillers.append(shot)
+
+    if content_shots:
+        body, tail = content_shots[:-1], content_shots[-1]
+    else:
+        body, tail = [], None
+    nc_b, nf = len(body), len(fillers)
+    merged, ci, fi = [], 0, 0
+    while ci < nc_b or fi < nf:
+        # 比例落后者先行（交叉相乘避浮点）；平局优先内容镜
+        if ci < nc_b and (fi >= nf or ci * nf <= fi * nc_b):
+            merged.append(body[ci])
+            ci += 1
         else:
-            text = f"（补拍·空镜）{scene_of(k)} 檐角风铃轻晃，烛影摇动"
-            shot_type, anchor = "远", "narrator"
-        shot = _mk(text, k)
-        shot.update(shot_type=shot_type, consistency_anchor=anchor, dialogue="",
-                    duration_sec=1.0)
-        shots.append(shot)
-        fillers += 1
+            merged.append(fillers[fi])
+            fi += 1
+    if tail is not None:
+        merged.append(tail)  # 尾镜保底正片（下集悬念钩的载体）
+    shots = merged[: SHOT_COUNT_RANGE[1]]
 
-    shots = shots[: SHOT_COUNT_RANGE[1]]
+    # 插入后统一重编号，保证 shot_id/scene_id 与最终顺序一致
+    for idx, s in enumerate(shots):
+        s["shot_id"] = f"shot-{ep_id}-{idx + 1:03d}"
+        s["scene_id"] = f"sc-{ep_id}-{idx // 10 + 1:02d}"
 
-    # 钩子标记：首镜（前 3 秒留人）+ 末镜（下集悬念）+ 钩子句所在镜
+    # 钩子标记：首个/最后一个正片镜（前 3 秒留人 + 下集悬念）+ 钩子句所在镜。
+    # YYC3-74 G3：补拍镜不设钩（钩子占位拦截的生成侧自洽——钩子必须是正片）
     # TC-G3-008：钩子镜头 image_prompt 追加「【钩子镜头】」标记，与普通镜头可区分
-    hook_ids = {shots[0]["shot_id"], shots[-1]["shot_id"]} if shots else set()
+    non_ph = [s for s in shots if PLACEHOLDER_MARK not in s["description"]]
+    hook_ids = ({non_ph[0]["shot_id"], non_ph[-1]["shot_id"]}
+                if non_ph else set())
     for s in shots:
         if hook_line and hook_line[:10] in s["description"]:
             hook_ids.add(s["shot_id"])
@@ -189,7 +278,8 @@ def draft_storyboard(project_id: str, episode: dict, elements: dict,
             s["hook_flag"] = True
             if "【钩子镜头】" not in s["image_prompt"]:
                 s["image_prompt"] += "，【钩子镜头】情绪强化构图"
-    hook_shots = [s["shot_id"] for s in shots if s["hook_flag"]] or [shots[0]["shot_id"]]
+    hooked = [s["shot_id"] for s in shots if s["hook_flag"]]
+    hook_shots = hooked or ([non_ph[0]["shot_id"]] if non_ph else [])
 
     return {
         "version": "1.0",

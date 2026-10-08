@@ -23,6 +23,9 @@ _SCENE_RE = re.compile(
     r"|(?:来到|走进|回到|到了|踏入)([\u4e00-\u9fa5A-Za-z0-9]{2,8})"
 )
 _STOPWORDS = {"他们", "她们", "自己", "我们", "众人", "此时", "突然", "只是", "所有", "一声", "什么", "这个", "那个"}
+# 场景名人称代词拒绝（YYC3-74 G4：场景正则「在XX里」对「在我命里」类
+# 人称短语的假阳性护栏；场景名不含第一/二人称与人称代词字）
+_PRONOUN_CHARS = set("我你他她它谁之其咱您")
 # 候选清洗：姓名/场景不得含动词助词与宾语特征字（规则基线的假阳性护栏）
 _NAME_BAD = set("的了着过起来眼头手脸声张句把条位名话说")
 _SCENE_BAD_LEAD = ("这张", "那张", "一张", "这个", "那个", "这座", "那座", "此")
@@ -74,8 +77,10 @@ def extract_elements(text: str, top_n: int = 10) -> dict:
 
     scenes: dict = {}
     for m in _SCENE_RE.finditer(text):
+        # YYC3-74 G4：场景候选追加人称代词拒绝——「在我命里」曾误抽场景
+        # 「我命」并经 scene_of 污染全部分镜 prompt（sdxl-prod-006 实证）
         place = _clean_candidate((m.group(1) or m.group(2) or "").strip(),
-                                 _NAME_BAD | set("封灯棺尸"), 2, 6)
+                                 _NAME_BAD | set("封灯棺尸") | _PRONOUN_CHARS, 2, 6)
         if place and not place.startswith(_SCENE_BAD_LEAD):
             scenes[place] = scenes.get(place, 0) + 1
 
