@@ -139,19 +139,12 @@ function LoginForm() {
               />
               记住我 7 天
             </label>
-            <button
-              type="button"
-              onClick={() =>
-                toast({
-                  title: "找回密码（TODO M5）",
-                  description: "ForgotPassword 流程随 Auth 剩余六页批次迁移",
-                  variant: "warning",
-                })
-              }
+            <Link
+              href="/forgot-password"
               className="cursor-pointer text-primary hover:underline"
             >
               忘记密码？
-            </button>
+            </Link>
           </div>
 
           <Button type="submit" disabled={isSubmitting} className="w-full font-bold">

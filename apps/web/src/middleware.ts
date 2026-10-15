@@ -8,7 +8,18 @@ import { NextResponse, type NextRequest } from "next/server";
  * 路由单一事实源：lib/auth-routes.ts（Edge bundle 不可跨层 import，此处保持同步镜像）
  */
 
-const AUTH_ROUTES = ["/login", "/mfa", "/register"];
+const AUTH_ROUTES = [
+  "/login",
+  "/mfa",
+  "/register",
+  // P2：Auth 剩余六页（镜像 lib/auth-routes.ts，Edge bundle 不可跨层 import）
+  "/forgot-password",
+  "/reset-password",
+  "/account-locked",
+  "/session-expired",
+  "/invite",
+  "/onboarding",
+];
 const AUTH_HOME = "/dashboard";
 const SESSION_COOKIE = "yyc3_session";
 
