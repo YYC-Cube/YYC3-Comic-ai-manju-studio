@@ -1,0 +1,25 @@
+{
+  "name": "@yyc3/manifest-schema",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StoryboardV1 分镜协议双端契约（TS zod 校验 / JSON Schema 导出 / Python 校验器同源）— 复用 yyc3-minimax-h3 契约包范式",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx src/test-schema.ts",
+    "gen": "tsx src/gen-json-schema.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

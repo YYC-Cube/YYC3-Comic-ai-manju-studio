@@ -1,0 +1,38 @@
+# ==============================================================
+# YYC³ manju-studio · DGX 生产部署（M0 骨架，原为 0 字节占位）
+# 状态：草案 — 仅声明与 Mac 开发栈的差异项，随 M4 部署联调完善。
+# 用法：docker compose -f docker-compose.mac.yml -f docker-compose.dgx.yml up -d
+# ==============================================================
+services:
+  # 生产差异 1：数据库与队列不对外发布端口，仅栈内可达
+  redis:
+    ports: []
+  postgres:
+    ports: []
+
+  # 生产差异 2：API 经 0379-world 网关（:30001）统一出口，不直接暴露
+  api:
+    ports: []
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      # TODO(M4): DATABASE_URL / NAS_PATH / 网关互信密钥
+    restart: always
+
+  celery:
+    restart: always
+    # TODO(M4/GPU): 渲染类队列绑定 GPU 资源
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           capabilities: [gpu]
+
+  # 生产差异 3：web 以生产模式运行（Dockerfile 需随 M4 增加 build/start 阶段）
+  web:
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://api:25200
+      NEXT_PUBLIC_GATEWAY_URL: http://localhost:30001
+    # TODO(M4): NAS 产出物挂载（storage/ ↔ /nas/manju）
+    # volumes:
+    #   - /volume1/manju/storage:/repo/storage

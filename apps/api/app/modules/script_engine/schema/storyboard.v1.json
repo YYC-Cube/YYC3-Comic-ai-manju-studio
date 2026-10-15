@@ -1,0 +1,150 @@
+{
+  "$ref": "#/definitions/storyboard.v1",
+  "definitions": {
+    "storyboard.v1": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "episode_title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "style_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "character_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "total_shots": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hook_shots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "shot_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "scene_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string"
+              },
+              "shot_type": {
+                "type": "string",
+                "enum": [
+                  "远",
+                  "全",
+                  "中",
+                  "近",
+                  "特"
+                ]
+              },
+              "camera_move": {
+                "type": "string",
+                "enum": [
+                  "推",
+                  "拉",
+                  "摇",
+                  "移",
+                  "跟",
+                  "固定"
+                ]
+              },
+              "dialogue": {
+                "type": "string"
+              },
+              "duration_sec": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "image_prompt": {
+                "type": "string"
+              },
+              "sfx": {
+                "type": "string"
+              },
+              "bgm": {
+                "type": "string"
+              },
+              "hook_flag": {
+                "type": "boolean"
+              },
+              "consistency_anchor": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shot_id",
+              "scene_id",
+              "description",
+              "shot_type",
+              "camera_move",
+              "dialogue",
+              "duration_sec",
+              "image_prompt",
+              "sfx",
+              "bgm",
+              "hook_flag",
+              "consistency_anchor"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "version",
+        "project_id",
+        "episode_id",
+        "episode_title",
+        "style_ref",
+        "character_refs",
+        "total_shots",
+        "hook_shots",
+        "shots",
+        "created_at",
+        "updated_at",
+        "trace_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
