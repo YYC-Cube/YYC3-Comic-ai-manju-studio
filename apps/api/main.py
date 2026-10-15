@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import assets, audio, auth, image, library, project, publish, script, storyboard, task, video
+from app.api.v1 import a2a, assets, audio, auth, image, library, project, publish, script, storyboard, task, video
 from app.core.config import get_settings
 from app.core.database import health as db_health
 from app.core.database import init_all as db_init_all
@@ -73,6 +73,8 @@ def create_app() -> FastAPI:
     app.include_router(audio.router, prefix=factory, tags=["audio"])
     app.include_router(video.router, prefix=factory, tags=["video"])
     app.include_router(library.router, prefix=factory, tags=["library"])
+    # M5：A2A 编排面联通（诊断 + 投递代理 → 0379-world）
+    app.include_router(a2a.router, prefix=factory, tags=["a2a"])
     app.include_router(publish.router, prefix=f"{settings.api_prefix}/publishing", tags=["publish"])
     app.include_router(project.router, prefix=f"{settings.api_prefix}/management", tags=["project"])
     # M4：会话鉴权（双模式 mock/gateway；挂 /api/v1 直下，不属于任一业务域）

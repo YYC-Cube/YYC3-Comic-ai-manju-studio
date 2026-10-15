@@ -25,6 +25,8 @@ class Settings:
     database_url: str = os.getenv("DATABASE_URL") or _DEFAULT_DB_URL
     # 网关（M4 鉴权收口；0379-world 实证端口 8000）
     gateway_url: str = os.getenv("GATEWAY_URL", "http://localhost:8000")
+    # M5 A2A：manju → 0379-world 编排面的服务身份（静态 X-API-Key；部署前置项：换发正式服务密钥）
+    gateway_api_key: str = os.getenv("GATEWAY_API_KEY", "")
     # 会话鉴权（M4 最小面）：mock=演示直通（内存注册表）/ gateway=代理 0379-world 签发与校验
     auth_mode: str = os.getenv("AUTH_MODE", "mock")
     # 存储（NAS 产出物根；默认仓内 storage/）
