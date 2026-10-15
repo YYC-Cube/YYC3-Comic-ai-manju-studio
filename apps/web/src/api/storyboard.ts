@@ -47,7 +47,7 @@ export function draftStoryboard(
   });
 }
 
-/** TODO(M3)：拉取单集分镜（后端持久化端点未落地，404 时由 withFallback 降级） */
+/** 拉取单集分镜（M3 持久化端点：注册表未命中时后端以引擎 draft 播种，开发态内存承载） */
 export function getStoryboard(
   projectId: string,
   episodeId = "ep01"
@@ -57,14 +57,15 @@ export function getStoryboard(
   );
 }
 
-/** TODO(M3)：更新单个镜头（局部字段 PATCH，同上降级语义） */
+/** 更新单个镜头（M3 持久化端点：局部字段 PATCH；404=未播种/镜头不存在） */
 export function updateShot(
+  projectId: string,
   episodeId: string,
   shotId: string,
   patch: Partial<Shot>
 ): Promise<Shot> {
   return request<Shot>(
-    `/api/v1/factory/storyboards/${encodeURIComponent(episodeId)}/shots/${encodeURIComponent(shotId)}`,
+    `/api/v1/factory/storyboards/${encodeURIComponent(projectId)}/${encodeURIComponent(episodeId)}/shots/${encodeURIComponent(shotId)}`,
     { method: "PATCH", body: JSON.stringify(patch) }
   );
 }

@@ -80,9 +80,9 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
       validationErrors: validateStoryboard(next),
     });
 
-    // 同步后端：失败保持本地态但留痕（P3 修复 2026-10-05：不再完全静默）
+    // 同步后端（M3 持久化端点）：失败保持本地态但留痕（P3 修复 2026-10-05：不再完全静默）
     try {
-      await apiUpdateShot(sb.episode_id, shotId, patch);
+      await apiUpdateShot(sb.project_id, sb.episode_id, shotId, patch);
     } catch (err) {
       console.warn(
         `[storyboard] 镜头 ${shotId} 后端同步失败，保持本地态：`,

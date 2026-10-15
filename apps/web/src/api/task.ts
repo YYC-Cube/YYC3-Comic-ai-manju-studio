@@ -1,8 +1,9 @@
 /**
- * 生产任务 API（M2）
- * 真实可用（M1 后端）：入队 / 状态查询 / 近期登记
- * TODO(M3)：任务列表业务化（六阶段流水线形状）与 SSE 流端点随后端 M3 落地；
- *           遗留 listTasks / subscribeTaskStream 保持幻影端点，由 withFallback 降级
+ * 生产任务 API（M2 真实端点 + M3 遗留收敛）
+ * 真实可用（M1/M2 后端）：入队 / 状态查询 / 近期登记
+ * 遗留 listTasks / subscribeTaskStream：use-task-store 消费中，幻影端点由 withFallback 降级，
+ *   TODO(M4) 业务形状列表与 SSE 流端点随真实遥测落地后切换 /factory/tasks 域
+ * M3 退役：getTask（零消费，详情由 getTaskStatus 承接）
  */
 import { API_BASE, request } from "@/api/client";
 import type { ProductionTask } from "@/types/task";

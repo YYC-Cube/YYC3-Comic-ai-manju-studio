@@ -10,8 +10,10 @@ import {
   Coins,
   Film,
   FolderKanban,
+  Gauge,
   LayoutDashboard,
   ListChecks,
+  ShieldCheck,
   TrendingUp,
   Users,
   type LucideIcon,
@@ -25,16 +27,19 @@ interface NavItem {
   icon: LucideIcon;
 }
 
+/** 产线作业动线排序：驾驶舱 → 生产域（剧本→分镜→资产→批量→质检→任务）→ 后期/管理域 */
 const NAV_ITEMS: NavItem[] = [
-  { label: "生产监控", href: "/production", icon: LayoutDashboard },
-  { label: "成本核算", href: "/cost", icon: Coins },
-  { label: "运营数据", href: "/analytics", icon: TrendingUp },
-  { label: "项目管理", href: "/project", icon: FolderKanban },
-  { label: "剧本编辑", href: "/script", icon: BookOpen },
+  { label: "指挥中心", href: "/dashboard", icon: Gauge },
+  { label: "剧本工作台", href: "/script", icon: BookOpen },
   { label: "分镜工作台", href: "/storyboard", icon: Clapperboard },
   { label: "资产管理", href: "/assets", icon: Users },
-  { label: "时间线剪辑", href: "/video", icon: Film },
+  { label: "批量生成", href: "/production", icon: LayoutDashboard },
+  { label: "质量检测", href: "/qa", icon: ShieldCheck },
   { label: "任务监控", href: "/tasks", icon: ListChecks },
+  { label: "时间线剪辑", href: "/video", icon: Film },
+  { label: "项目管理", href: "/project", icon: FolderKanban },
+  { label: "成本核算", href: "/cost", icon: Coins },
+  { label: "运营数据", href: "/analytics", icon: TrendingUp },
 ];
 
 export function Sidebar() {
