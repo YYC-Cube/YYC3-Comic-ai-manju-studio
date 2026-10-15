@@ -19,6 +19,6 @@ fastapi>=0.115
 uvicorn>=0.30
 celery>=5.4
 redis>=5.0
-# ── 持久化依赖（M1 启用，随 core/database.py 建设补入）──
-# sqlalchemy>=2.0
-# psycopg[binary]>=3.2
+# ── 持久化依赖（M5 启用：注册表/登记切库，core/database.py 建表）──
+sqlalchemy>=2.0        # 引擎 + Core 表抽象（SQLite 本地 / PG 部署通用）
+# psycopg[binary]>=3.2  # PG 部署态解除注释；本地开发用 SQLite（stdlib 驱动免装）

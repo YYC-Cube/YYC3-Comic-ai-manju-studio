@@ -24,11 +24,10 @@ from app.modules.script_engine.storyboard_schema import (
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # --------------------------------------------------------------
-# 开发态分镜持久化注册表（M3）
-# 内存承载、重启即失——与 M1 project 登记同模式；M4 切数据库（DATABASE_URL 惰性工厂已备）
+# 分镜持久化注册表（M5 切库：core/database storyboards 表，重启不丢）
 # 首次 GET 以引擎 draft 播种：返回真实引擎产出（非 mock），保证 PATCH 有真实作用对象
 # --------------------------------------------------------------
-_STORYBOARD_REGISTRY: dict[str, dict] = {}
+from app.core.database import load_storyboard, save_storyboard  # noqa: E402
 
 _SEED_EPISODE_CONTENT = (
     "夜幕降临，林晚来到天台，手里攥着那封泛黄的信。"
@@ -89,9 +88,9 @@ def draft(req: DraftRequest) -> dict:
 
 @router.get("/storyboards/{project_id}/{episode_id}")
 def get_storyboard(project_id: str, episode_id: str) -> dict:
-    """分镜读取：注册表命中即返回；未命中以引擎 draft 播种后返回（开发态语义）"""
+    """分镜读取：注册表命中即返回；未命中以引擎 draft 播种后返回（持久化于 storyboards 表）"""
     key = f"{project_id}:{episode_id}"
-    sb = _STORYBOARD_REGISTRY.get(key)
+    sb = load_storyboard(key)
     if sb is None:
         sb = draft_storyboard(
             project_id=project_id,
@@ -103,7 +102,7 @@ def get_storyboard(project_id: str, episode_id: str) -> dict:
             elements={},
             trace_id=f"trace-seed-{project_id}-{episode_id}",
         )
-        _STORYBOARD_REGISTRY[key] = sb
+        save_storyboard(key, sb)
     return sb
 
 
@@ -111,7 +110,7 @@ def get_storyboard(project_id: str, episode_id: str) -> dict:
 def update_shot(project_id: str, episode_id: str, shot_id: str, patch: ShotPatch) -> dict:
     """镜头局部更新：注册表未播种返回 404（前端先 GET 播种）；镜头不存在返回 404"""
     key = f"{project_id}:{episode_id}"
-    sb = _STORYBOARD_REGISTRY.get(key)
+    sb = load_storyboard(key)
     if sb is None:
         raise HTTPException(status_code=404, detail=f"分镜未播种：{key}（先 GET 触发播种）")
     updates = patch.model_dump(exclude_none=True)
@@ -121,5 +120,6 @@ def update_shot(project_id: str, episode_id: str, shot_id: str, patch: ShotPatch
         if shot.get("shot_id") == shot_id:
             shot.update(updates)
             sb["updated_at"] = datetime.now(timezone.utc).isoformat()
+            save_storyboard(key, sb)
             return shot
     raise HTTPException(status_code=404, detail=f"镜头不存在：{shot_id}")

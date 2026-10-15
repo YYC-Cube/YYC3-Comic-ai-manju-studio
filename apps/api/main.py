@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from app.api.v1 import assets, audio, auth, image, project, publish, script, storyboard, task, video
 from app.core.config import get_settings
 from app.core.database import health as db_health
+from app.core.database import init_all as db_init_all
 from app.core.redis import ping as redis_ping
 
 settings = get_settings()
@@ -22,8 +23,8 @@ settings = get_settings()
 def create_app() -> FastAPI:
     app = FastAPI(
         title="yyc3-manju-api",
-        version="0.2.0-m1",
-        description="YYC³ 漫剧全链路生产系统 · 生产端 API（M1 后端通电）",
+        version="0.5.0-m5",
+        description="YYC³ 漫剧全链路生产系统 · 生产端 API（M5 编排对齐 + 持久化切库）",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -32,6 +33,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ---- M5 持久化：启动建表（幂等）；失败不阻断服务，healthz database=error 可见 ----
+    try:
+        db_init_all()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[manju-api] 启动建表失败（路由首次访问将惰性重试）：{exc}")
 
     # ---- 统一错误形态（YYC3-78）----
     @app.exception_handler(Exception)

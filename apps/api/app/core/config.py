@@ -5,6 +5,11 @@
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
+
+# 仓根推导（config.py 位于 apps/api/app/core/ 下）：本地默认 SQLite 落仓内 .tmp/
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+_DEFAULT_DB_URL = f"sqlite:///{_REPO_ROOT / '.tmp' / 'manju.db'}"
 
 
 @dataclass(frozen=True)
@@ -12,13 +17,14 @@ class Settings:
     # 服务
     api_prefix: str = "/api/v1"
     env: str = os.getenv("MANJU_ENV", "dev")
-    service_stage: str = "M1"
+    service_stage: str = "M5"
     # 队列
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    # 持久化（M2 启用；M1 路由层不依赖数据库）
-    database_url: str | None = os.getenv("DATABASE_URL") or None
-    # 网关（M4 鉴权收口；M1 仅记录）
-    gateway_url: str = os.getenv("GATEWAY_URL", "http://localhost:30001")
+    # 持久化（M5 切库启用）：默认仓内 SQLite 文件（零配置本地可跑）；
+    # 部署态以 env DATABASE_URL 覆盖为 PG（psycopg 驱动随部署 requirements 解除注释）
+    database_url: str = os.getenv("DATABASE_URL") or _DEFAULT_DB_URL
+    # 网关（M4 鉴权收口；0379-world 实证端口 8000）
+    gateway_url: str = os.getenv("GATEWAY_URL", "http://localhost:8000")
     # 会话鉴权（M4 最小面）：mock=演示直通（内存注册表）/ gateway=代理 0379-world 签发与校验
     auth_mode: str = os.getenv("AUTH_MODE", "mock")
     # 存储（NAS 产出物根；默认仓内 storage/）
