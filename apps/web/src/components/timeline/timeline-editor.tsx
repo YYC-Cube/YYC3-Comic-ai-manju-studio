@@ -15,15 +15,30 @@ interface TimelineEditorProps {
   /** 初始缩放：每秒像素 */
   initialPxPerSec?: number;
   className?: string;
+  /** 受控选中镜头 ID（可选；不传则内部自管理） */
+  selectedId?: string | null;
+  /** 选中变化回调（受控模式下与页面检查器联动） */
+  onSelect?: (id: string) => void;
 }
 
 const TICK_INTERVAL_SEC = 5;
 
-export function TimelineEditor({ shots, initialPxPerSec = 48, className }: TimelineEditorProps) {
+export function TimelineEditor({
+  shots,
+  initialPxPerSec = 48,
+  className,
+  selectedId: selectedIdProp,
+  onSelect,
+}: TimelineEditorProps) {
   const [pxPerSec, setPxPerSec] = useState(initialPxPerSec);
   const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [innerSelectedId, setInnerSelectedId] = useState<string | null>(null);
+  const selectedId = selectedIdProp !== undefined ? selectedIdProp : innerSelectedId;
+  const handleSelect = (id: string) => {
+    setInnerSelectedId(id);
+    onSelect?.(id);
+  };
   const rafRef = useRef<number | null>(null);
   const lastTsRef = useRef<number | null>(null);
 
@@ -136,7 +151,7 @@ export function TimelineEditor({ shots, initialPxPerSec = 48, className }: Timel
               <button
                 key={shot.shot_id}
                 type="button"
-                onClick={() => setSelectedId(shot.shot_id)}
+                onClick={() => handleSelect(shot.shot_id)}
                 className={cn(
                   "absolute inset-y-0 flex items-center gap-1 truncate rounded-sm border px-2 text-left text-xs transition-colors",
                   selectedId === shot.shot_id

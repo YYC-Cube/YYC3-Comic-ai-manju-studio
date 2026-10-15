@@ -1,5 +1,5 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
+import { AuthGate } from "@/components/layout/auth-gate";
+import { Chrome } from "@/components/layout/chrome";
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -25,12 +25,9 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="font-sans">
         <Providers>
-          <Sidebar />
-          {/* 侧栏固定 240px（w-60），主内容区左侧让位 */}
-          <div className="pl-60">
-            <Topbar />
-            <main className="mx-auto max-w-[1400px] p-6">{children}</main>
-          </div>
+          <AuthGate>
+            <Chrome>{children}</Chrome>
+          </AuthGate>
         </Providers>
       </body>
     </html>

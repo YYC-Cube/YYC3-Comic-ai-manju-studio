@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import assets, audio, image, project, publish, script, storyboard, task, video
+from app.api.v1 import assets, audio, auth, image, project, publish, script, storyboard, task, video
 from app.core.config import get_settings
 from app.core.database import health as db_health
 from app.core.redis import ping as redis_ping
@@ -62,6 +62,8 @@ def create_app() -> FastAPI:
     app.include_router(video.router, prefix=factory, tags=["video"])
     app.include_router(publish.router, prefix=f"{settings.api_prefix}/publishing", tags=["publish"])
     app.include_router(project.router, prefix=f"{settings.api_prefix}/management", tags=["project"])
+    # M4：会话鉴权（双模式 mock/gateway；挂 /api/v1 直下，不属于任一业务域）
+    app.include_router(auth.router, prefix=settings.api_prefix, tags=["auth"])
 
     return app
 

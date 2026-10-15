@@ -19,6 +19,8 @@ class Settings:
     database_url: str | None = os.getenv("DATABASE_URL") or None
     # 网关（M4 鉴权收口；M1 仅记录）
     gateway_url: str = os.getenv("GATEWAY_URL", "http://localhost:30001")
+    # 会话鉴权（M4 最小面）：mock=演示直通（内存注册表）/ gateway=代理 0379-world 签发与校验
+    auth_mode: str = os.getenv("AUTH_MODE", "mock")
     # 存储（NAS 产出物根；默认仓内 storage/）
     nas_path: str = os.getenv("NAS_PATH", "")
     # CORS（本地 web dev :20300）

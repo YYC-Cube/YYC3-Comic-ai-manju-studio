@@ -43,6 +43,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     res = await fetch(`${API_BASE}${path}`, {
       ...init,
       signal: controller.signal,
+      // M4 鉴权基座：跨源携带会话 Cookie（yyc3_session，HttpOnly）；
+      // 后端 CORSMiddleware 已 allow_credentials=True + 精确源白名单
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...init?.headers,

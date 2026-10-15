@@ -2,7 +2,8 @@
  * 生产任务 API（M2 真实端点 + M3 遗留收敛）
  * 真实可用（M1/M2 后端）：入队 / 状态查询 / 近期登记
  * 遗留 listTasks / subscribeTaskStream：use-task-store 消费中，幻影端点由 withFallback 降级，
- *   TODO(M4) 业务形状列表与 SSE 流端点随真实遥测落地后切换 /factory/tasks 域
+ *   TODO(M5) 业务形状列表与 SSE 流端点随真实遥测落地后切换 /factory/tasks 域
+ *   （M4 评估：真遥测依赖 Celery 事件桥 + ReAct-C 九步链路字段 + 登记持久化，半适配会伪造空字段，整体顺延 M5）
  * M3 退役：getTask（零消费，详情由 getTaskStatus 承接）
  */
 import { API_BASE, request } from "@/api/client";
