@@ -1,5 +1,5 @@
 /**
- * API 客户端：统一请求封装 + mock 降级
+ * API 客户端：统一请求封装 + mock 降级（M2 · YYC3-78 错误码对齐）
  * 后端未实现期间，前端依赖 withFallback 降级到演示数据，可独立开发
  */
 
@@ -9,21 +9,31 @@ export const API_BASE =
 export const GATEWAY_URL =
   process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:30001";
 
-/** 请求超时时间（毫秒） */
-const TIMEOUT_MS = 5000;
+/** 请求超时时间（毫秒，YYC3-78 统一为 10s） */
+export const TIMEOUT_MS = 10_000;
+
+/** 错误码（YYC3-78 第三节） */
+export type ApiErrorCode = "NO_BACKEND" | "NETWORK" | "TIMEOUT" | "HTTP";
 
 /** API 业务错误 */
 export class ApiError extends Error {
-  status?: number;
+  readonly code: ApiErrorCode;
+  readonly endpoint: string;
+  readonly status?: number;
 
-  constructor(message: string, status?: number) {
+  constructor(
+    message: string,
+    options: { code: ApiErrorCode; endpoint: string; status?: number }
+  ) {
     super(message);
     this.name = "ApiError";
-    this.status = status;
+    this.code = options.code;
+    this.endpoint = options.endpoint;
+    this.status = options.status;
   }
 }
 
-/** 统一 JSON 请求：5 秒超时 + 统一错误处理 */
+/** 统一 JSON 请求：10 秒超时 + 统一错误处理 */
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -40,23 +50,34 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new ApiError(`请求超时（${TIMEOUT_MS / 1000}s）：${path}`);
+      throw new ApiError(`请求超时（${TIMEOUT_MS / 1000}s）：${path}`, {
+        code: "TIMEOUT",
+        endpoint: path,
+      });
     }
     throw new ApiError(
-      `网络错误：${err instanceof Error ? err.message : String(err)}`
+      `网络错误：${err instanceof Error ? err.message : String(err)}`,
+      { code: "NETWORK", endpoint: path }
     );
   } finally {
     clearTimeout(timer);
   }
 
   if (!res.ok) {
-    throw new ApiError(`请求失败 ${res.status}：${path}`, res.status);
+    throw new ApiError(`请求失败 ${res.status}：${path}`, {
+      code: "HTTP",
+      endpoint: path,
+      status: res.status,
+    });
   }
 
   try {
     return (await res.json()) as T;
   } catch {
-    throw new ApiError(`响应不是合法 JSON：${path}`);
+    throw new ApiError(`响应不是合法 JSON：${path}`, {
+      code: "HTTP",
+      endpoint: path,
+    });
   }
 }
 

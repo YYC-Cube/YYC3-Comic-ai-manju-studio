@@ -5,7 +5,8 @@
  * 生成剧本 / 提取分镜均走真实 API，失败自动降级演示数据
  */
 import { withFallback } from "@/api/client";
-import { extractStoryboard, generateScript, type ScriptResult } from "@/api/script";
+import { analyzeScript, type ScriptResult } from "@/api/script";
+import { draftStoryboard } from "@/api/storyboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +54,7 @@ export function ScriptEditor({ projectId, className }: ScriptEditorProps) {
   const handleGenerate = async () => {
     setLoading("generate");
     const { data, isMock: mock } = await withFallback(
-      () => generateScript({ project_id: projectId, novel_text: novelText }),
+      () => analyzeScript({ project_id: projectId, novel_text: novelText }),
       () => MOCK_SCRIPT_RESULT
     );
     setResult(data);
@@ -69,12 +70,17 @@ export function ScriptEditor({ projectId, className }: ScriptEditorProps) {
   const handleExtract = async () => {
     setLoading("extract");
     const { data, isMock: mock } = await withFallback(
-      () =>
-        extractStoryboard({
+      async () => {
+        const res = await draftStoryboard({
           project_id: projectId,
-          episode_id: "ep01",
-          script_text: novelText || "（空文本，按默认模板演示提取）",
-        }),
+          episode: {
+            episode_id: "ep01",
+            content: novelText || "（空文本，按默认模板演示提取）",
+          },
+          elements: { characters: [], scenes: [] },
+        });
+        return res.storyboard;
+      },
       () => mockStoryboard
     );
     setStoryboard(data);

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 20300",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx src/lib/__tests__/storyboard-adapter.test.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -30,6 +31,7 @@
     "eslint-config-next": "^16.0.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }
 }

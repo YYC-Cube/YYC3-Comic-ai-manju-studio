@@ -24,6 +24,8 @@ export default function StoryboardPage() {
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const storyboard = useStoryboardStore((s) => s.storyboard);
   const validationErrors = useStoryboardStore((s) => s.validationErrors);
+  const remoteWarnings = useStoryboardStore((s) => s.remoteWarnings);
+  const validationSource = useStoryboardStore((s) => s.validationSource);
   const loading = useStoryboardStore((s) => s.loading);
   const isMock = useStoryboardStore((s) => s.isMock);
   const load = useStoryboardStore((s) => s.load);
@@ -42,6 +44,9 @@ export default function StoryboardPage() {
         actions={
           <>
             {isMock && <Badge variant="warning">演示数据</Badge>}
+            <Badge variant={validationSource === "remote" ? "secondary" : "outline"}>
+              {validationSource === "remote" ? "远程引擎校验" : "本地校验"}
+            </Badge>
             {storyboard && (
               <Badge variant="secondary">
                 {storyboard.episode_title} · {storyboard.shots.length} 镜
@@ -77,6 +82,13 @@ export default function StoryboardPage() {
           <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs">
             {validationErrors.map((err) => (
               <li key={err}>{err}</li>
+            ))}
+          </ul>
+        )}
+        {remoteWarnings.length > 0 && (
+          <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-amber-700">
+            {remoteWarnings.map((w) => (
+              <li key={w}>⚠ {w}</li>
             ))}
           </ul>
         )}

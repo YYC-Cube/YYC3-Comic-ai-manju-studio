@@ -1,10 +1,55 @@
 /**
- * 生产任务 API（列表 / 详情 / SSE 流订阅）
+ * 生产任务 API（M2）
+ * 真实可用（M1 后端）：入队 / 状态查询 / 近期登记
+ * TODO(M3)：任务列表业务化（六阶段流水线形状）与 SSE 流端点随后端 M3 落地；
+ *           遗留 listTasks / subscribeTaskStream 保持幻影端点，由 withFallback 降级
  */
 import { API_BASE, request } from "@/api/client";
 import type { ProductionTask } from "@/types/task";
 
-/** 任务列表（可按项目过滤） */
+/* -------------------- M2 真实端点 -------------------- */
+
+export type TaskType = "image" | "audio" | "video" | "render";
+
+export interface EnqueueResult {
+  task_id: string;
+  task_type: TaskType;
+  status: "QUEUED";
+}
+
+export interface TaskStatusResult {
+  task_id: string;
+  state: string; // PENDING | STARTED | SUCCESS | FAILURE | ...
+  result?: unknown;
+  error?: string;
+}
+
+/** 任务入队（四队列：image/audio/video/render） */
+export function enqueueTask(
+  taskType: TaskType,
+  payload: Record<string, unknown>
+): Promise<EnqueueResult> {
+  return request<EnqueueResult>("/api/v1/factory/tasks", {
+    method: "POST",
+    body: JSON.stringify({ task_type: taskType, payload }),
+  });
+}
+
+/** 任务状态/结果查询（Celery 结果后端） */
+export function getTaskStatus(taskId: string): Promise<TaskStatusResult> {
+  return request<TaskStatusResult>(
+    `/api/v1/factory/tasks/${encodeURIComponent(taskId)}`
+  );
+}
+
+/** 近期入队登记（开发态，进程内存） */
+export function listRecentTasks(): Promise<{ items: unknown[]; note: string }> {
+  return request("/api/v1/factory/tasks");
+}
+
+/* -------------------- 遗留骨架（TODO M3，勿在联通期调用真实路径） -------------------- */
+
+/** 任务列表（可按项目过滤）—— TODO(M3) 业务形状对齐后切换 /factory/tasks */
 export function listTasks(projectId?: string): Promise<ProductionTask[]> {
   const query = projectId
     ? `?project_id=${encodeURIComponent(projectId)}`
@@ -12,7 +57,7 @@ export function listTasks(projectId?: string): Promise<ProductionTask[]> {
   return request<ProductionTask[]>(`/api/v1/tasks${query}`);
 }
 
-/** 任务详情 */
+/** 任务详情 —— TODO(M3) */
 export function getTask(taskId: string): Promise<ProductionTask> {
   return request<ProductionTask>(
     `/api/v1/tasks/${encodeURIComponent(taskId)}`
@@ -20,9 +65,8 @@ export function getTask(taskId: string): Promise<ProductionTask> {
 }
 
 /**
- * 订阅任务进度 SSE 流
+ * 订阅任务进度 SSE 流 —— TODO(M3) 后端流端点落地后切换
  * 返回 close 函数用于组件卸载时断开连接
- * onStatusChange：可选的连接状态回调（open → true / error → false）
  */
 export function subscribeTaskStream(
   projectId: string,
