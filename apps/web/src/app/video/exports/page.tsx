@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * 渲染导出中枢页（M4 · 迁移自 MiniMax-3 原型 editing/VideoExportsPage）
- * 真链路裁决：导出队列端点缺位——withFallback 降级演示队列并挂「演示数据」徽章留痕；
- *             提交批量转码为 toast 占位 + TODO(M5)（创建端点随 M5 批次，POST /videos:render 形状对齐后接入）；
- *             「直通分发向导 / 下载并分发」→ /publish/wizard 真路由
+ * 渲染导出中枢页（M4 · 迁移自 MiniMax-3 原型 editing/VideoExportsPage；M5 端点落地）
+ * 真链路：GET/POST /videos/exports 真端点（export_tasks 表）——withFallback 保留网络兜底；
+ *         「提交批量转码导出」真创建任务（EXP-NNN，queued 态；转码 worker 未接，进度不伪造推进）；
+ *         「直通分发向导 / 下载并分发」→ /publish/wizard 真路由
  * 布局：头部 → 左新建导出预设卡（分辨率/封装格式/五平台变体说明）→ 右硬件转码队列
  */
 import { useState } from "react";
 import Link from "next/link";
 import { Download, Share2 } from "lucide-react";
-import { listExportTasks, type ExportTask } from "@/api/video-export";
+import { createExportTask, listExportTasks, type ExportTask } from "@/api/video-export";
 import { withFallback } from "@/api/client";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -64,8 +64,9 @@ export default function VideoExportsPage() {
   const { toast } = useToast();
   const [resolution, setResolution] = useState<Resolution>("1080p");
   const [format, setFormat] = useState<ContainerFormat>("MP4");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data, loading } = useApiData(
+  const { data, loading, retry } = useApiData(
     () => withFallback(listExportTasks, () => DEMO_TASKS),
     { snapshotKey: "video-exports:v1" }
   );
@@ -156,15 +157,34 @@ export default function VideoExportsPage() {
 
             <Button
               className="w-full font-bold"
-              onClick={() =>
-                toast({
-                  title: "批量转码提交（TODO M5）",
-                  description: `${resolution} · ${format} 预设已就绪；导出任务创建端点随 M5 批次落地（对齐 POST /videos:render）`,
-                  variant: "warning",
-                })
-              }
+              disabled={isSubmitting}
+              onClick={async () => {
+                if (isSubmitting) return;
+                setIsSubmitting(true);
+                try {
+                  const created = await createExportTask({
+                    title: `E01 多规格变体包（${resolution} · ${format}）`,
+                    resolution,
+                    format,
+                  });
+                  toast({
+                    title: `导出任务已创建 ${created.id}`,
+                    description: "queued 态入队；FFmpeg 转码管线接入后自动推进",
+                    variant: "success",
+                  });
+                  retry();
+                } catch (err) {
+                  toast({
+                    title: "创建失败",
+                    description: err instanceof Error ? err.message : "请稍后重试",
+                    variant: "warning",
+                  });
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
             >
-              提交批量转码导出
+              {isSubmitting ? "正在创建…" : "提交批量转码导出"}
             </Button>
           </CardContent>
         </Card>

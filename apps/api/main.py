@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import assets, audio, auth, image, project, publish, script, storyboard, task, video
+from app.api.v1 import assets, audio, auth, image, library, project, publish, script, storyboard, task, video
 from app.core.config import get_settings
 from app.core.database import health as db_health
 from app.core.database import init_all as db_init_all
@@ -34,11 +34,16 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # ---- M5 持久化：启动建表（幂等）；失败不阻断服务，healthz database=error 可见 ----
+    # ---- M5 持久化：启动建表（幂等）+ 库域空表灌演示种子；失败不阻断，healthz 可见 ----
     try:
         db_init_all()
+        from app.seeds import ensure_library_seed  # noqa: PLC0415
+
+        seeded = ensure_library_seed()
+        if seeded:
+            print(f"[manju-api] 库域空表已灌演示种子 {seeded} 条（script/asset/batch）")
     except Exception as exc:  # noqa: BLE001
-        print(f"[manju-api] 启动建表失败（路由首次访问将惰性重试）：{exc}")
+        print(f"[manju-api] 启动建表/种子失败（路由首次访问将惰性重试）：{exc}")
 
     # ---- 统一错误形态（YYC3-78）----
     @app.exception_handler(Exception)
@@ -67,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(image.router, prefix=factory, tags=["image"])
     app.include_router(audio.router, prefix=factory, tags=["audio"])
     app.include_router(video.router, prefix=factory, tags=["video"])
+    app.include_router(library.router, prefix=factory, tags=["library"])
     app.include_router(publish.router, prefix=f"{settings.api_prefix}/publishing", tags=["publish"])
     app.include_router(project.router, prefix=f"{settings.api_prefix}/management", tags=["project"])
     # M4：会话鉴权（双模式 mock/gateway；挂 /api/v1 直下，不属于任一业务域）

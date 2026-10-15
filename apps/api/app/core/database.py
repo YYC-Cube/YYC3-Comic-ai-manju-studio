@@ -68,6 +68,29 @@ def _table(name: str) -> Any:
             Column("status", Text, nullable=False),
             Column("created_at", Text, nullable=False),
         ],
+        # 库域文档（M5 端点落地）：kind ∈ script/asset/batch，doc = 条目 JSON
+        # 种子：原型 mock 演示数据一次性灌库（空表触发，业务流接入后自然更替）
+        "library_docs": [
+            Column("kind", Text, primary_key=True),
+            Column("item_id", Text, primary_key=True),
+            Column("doc", Text, nullable=False),
+        ],
+        # 渲染导出任务（M5 端点落地）：EXP-NNN 序号，doc = ExportTask JSON
+        "export_tasks": [
+            Column("seq", Integer, primary_key=True, autoincrement=True),
+            Column("export_id", Text, nullable=False, unique=True),
+            Column("doc", Text, nullable=False),
+            Column("created_at", Text, nullable=False),
+        ],
+        # 推送分发任务（M5 落地 501）：JOB-NNN 序号，matrix 看板由本表派生
+        "publish_jobs": [
+            Column("seq", Integer, primary_key=True, autoincrement=True),
+            Column("job_id", Text, nullable=False, unique=True),
+            Column("title", Text, nullable=False),
+            Column("platforms", Text, nullable=False),
+            Column("status", Text, nullable=False),
+            Column("created_at", Text, nullable=False),
+        ],
     }
     if name not in specs:
         raise KeyError(f"未登记的表：{name}")
@@ -85,7 +108,7 @@ def init_schema() -> None:
 
 def init_all() -> None:
     """启动期显式注册并建全部表（幂等）；路由首次访问亦会惰性补建。"""
-    for name in ("storyboards", "projects", "task_registry"):
+    for name in ("storyboards", "projects", "task_registry", "library_docs", "export_tasks", "publish_jobs"):
         _table(name)
 
 
@@ -200,3 +223,126 @@ def health() -> str:
         return "ok"
     except Exception:
         return "error"
+
+
+# --------------------------------------------------------------
+# 库域文档（library 路由消费；种子经 ensure_library_seed 空表灌入）
+# --------------------------------------------------------------
+def upsert_library_doc(kind: str, item_id: str, doc: dict) -> None:
+    from sqlalchemy import select  # noqa: PLC0415
+
+    tbl = _table("library_docs")
+    payload = json.dumps(doc, ensure_ascii=False)
+    with get_engine().begin() as conn:
+        exists = conn.execute(
+            select(tbl.c.item_id).where(tbl.c.kind == kind, tbl.c.item_id == item_id)
+        ).first()
+        if exists:
+            conn.execute(
+                tbl.update()
+                .where(tbl.c.kind == kind, tbl.c.item_id == item_id)
+                .values(doc=payload)
+            )
+        else:
+            from sqlalchemy import insert  # noqa: PLC0415
+
+            conn.execute(insert(tbl).values(kind=kind, item_id=item_id, doc=payload))
+
+
+def list_library_docs(kind: str) -> list[dict]:
+    from sqlalchemy import select  # noqa: PLC0415
+
+    tbl = _table("library_docs")
+    with get_engine().connect() as conn:
+        rows = conn.execute(select(tbl.c.doc).where(tbl.c.kind == kind)).all()
+    return [json.loads(r[0]) for r in rows]
+
+
+def library_kind_count(kind: str) -> int:
+    from sqlalchemy import func, select  # noqa: PLC0415
+
+    tbl = _table("library_docs")
+    with get_engine().connect() as conn:
+        return int(conn.execute(select(func.count()).where(tbl.c.kind == kind)).scalar() or 0)
+
+
+# --------------------------------------------------------------
+# 渲染导出任务（video 路由消费）
+# --------------------------------------------------------------
+def next_export_seq() -> int:
+    from sqlalchemy import func, select  # noqa: PLC0415
+
+    tbl = _table("export_tasks")
+    with get_engine().connect() as conn:
+        n = conn.execute(select(func.count(tbl.c.seq))).scalar() or 0
+    return n + 101  # EXP-101 起（对齐原型编号语义）
+
+
+def insert_export_task(export_id: str, doc: dict) -> None:
+    from sqlalchemy import insert  # noqa: PLC0415
+
+    tbl = _table("export_tasks")
+    with get_engine().begin() as conn:
+        conn.execute(
+            insert(tbl).values(
+                export_id=export_id, doc=json.dumps(doc, ensure_ascii=False), created_at=_now()
+            )
+        )
+
+
+def list_export_tasks() -> list[dict]:
+    from sqlalchemy import select  # noqa: PLC0415
+
+    tbl = _table("export_tasks")
+    with get_engine().connect() as conn:
+        rows = conn.execute(select(tbl.c.doc).order_by(tbl.c.seq.desc())).all()
+    return [json.loads(r[0]) for r in rows]
+
+
+# --------------------------------------------------------------
+# 推送分发任务（publish 路由消费；matrix 由本表派生）
+# --------------------------------------------------------------
+def next_publish_job_seq() -> int:
+    from sqlalchemy import func, select  # noqa: PLC0415
+
+    tbl = _table("publish_jobs")
+    with get_engine().connect() as conn:
+        n = conn.execute(select(func.count(tbl.c.seq))).scalar() or 0
+    return n + 1
+
+
+def insert_publish_job(job_id: str, title: str, platforms: list[str], status: str) -> None:
+    from sqlalchemy import insert  # noqa: PLC0415
+
+    tbl = _table("publish_jobs")
+    with get_engine().begin() as conn:
+        conn.execute(
+            insert(tbl).values(
+                job_id=job_id,
+                title=title,
+                platforms=json.dumps(platforms, ensure_ascii=False),
+                status=status,
+                created_at=_now(),
+            )
+        )
+
+
+def list_publish_jobs() -> list[dict]:
+    from sqlalchemy import select  # noqa: PLC0415
+
+    tbl = _table("publish_jobs")
+    with get_engine().connect() as conn:
+        rows = conn.execute(
+            select(tbl.c.job_id, tbl.c.title, tbl.c.platforms, tbl.c.status, tbl.c.created_at)
+            .order_by(tbl.c.seq.desc())
+        ).all()
+    return [
+        {
+            "job_id": r[0],
+            "title": r[1],
+            "platforms": json.loads(r[2]),
+            "status": r[3],
+            "created_at": r[4],
+        }
+        for r in rows
+    ]

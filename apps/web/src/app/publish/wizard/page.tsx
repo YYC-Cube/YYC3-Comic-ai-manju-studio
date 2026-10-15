@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * 一键多平台分发向导页（M4 · 迁移自 MiniMax-3 原型 publishing/PublishWizardPage）
- * 真链路：提交真调 POST /api/v1/publishing/jobs——M1 骨架 501，显式报错提示（不伪造入队成功）；
- *         原型预填假标题文案改为空初始值 + 占位示例；敏感词预检假结果卡改为「端点待接入」诚实提示；
- *         「换一批爆款标题」→ toast TODO(M5)（AI 标题生成端点）
+ * 一键多平台分发向导页（M4 · 迁移自 MiniMax-3 原型 publishing/PublishWizardPage；M5 jobs 落地）
+ * 真链路：POST /api/v1/publishing/jobs 真入队（publish_jobs 表，JOB-NNN，queued 态——
+ *         分发 worker/授权池未接，状态不伪造推进）；成功后跳 /publish 看板（matrix 由 jobs 派生）；
+ *         敏感词预检端点仍待接入（诚实提示卡保留）
  * 布局：步骤条（① 选片 ② 平台适配与文案 ③ 定时排期，本地步骤态）→ 左表单（平台多选/标题/预检）→ 右摘要（派生计数 + 知遇·伯乐时段卡）
  */
 import { useState } from "react";
@@ -60,8 +60,8 @@ export default function PublishWizardPage() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 501) {
         toast({
-          title: "推送队列端点未落地（M1 骨架 501）",
-          description: "分发任务入队随 H3 产出回流与 M5 批次落地，当前仅向导 UI 联通",
+          title: "推送队列未就绪（501）",
+          description: "分发 worker 未接入；任务入队已真落地（publish_jobs 表），请检查服务版本",
           variant: "warning",
         });
       } else {

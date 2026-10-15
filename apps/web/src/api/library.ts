@@ -1,8 +1,7 @@
 /**
- * 产线库域 API（M3 · 剧本库/资产库/批量生产）
- * TODO(M5)：后端库域持久化端点未落地（M1 仅工厂引擎域 + 管理域），
- *           当前请求 404 时由页面层 withFallback/useApiData 降级 mock 演示数据；
- *           端点路径按 YYC3-78 治理预留（/api/v1/factory/library/*），后端就绪后零改动切换
+ * 产线库域 API（M3 · 剧本库/资产库/批量生产；M5 端点落地）
+ * M5：三端点真落地（library_docs 表；空表由后端 app/seeds 灌演示种子，
+ *      业务流登记接入后数据自然更替）；withFallback 保留作网络失败兜底
  */
 import { request } from "@/api/client";
 import type { AssetItem, BatchItem, ScriptItem } from "@/types/domain";
