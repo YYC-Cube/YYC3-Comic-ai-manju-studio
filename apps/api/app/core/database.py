@@ -60,12 +60,13 @@ def _table(name: str) -> Any:
             Column("doc", Text, nullable=False),
             Column("created_at", Text, nullable=False),
         ],
-        # 任务入队登记：seq 自增（倒序取近 50 条）
+        # 任务入队登记：seq 自增（倒序取近 50 条）；M5 SSE 遥测加 project_id 归属列
         "task_registry": [
             Column("seq", Integer, primary_key=True, autoincrement=True),
             Column("task_id", Text, nullable=False),
             Column("task_type", Text, nullable=False),
             Column("status", Text, nullable=False),
+            Column("project_id", Text, nullable=False, default=""),
             Column("created_at", Text, nullable=False),
         ],
         # 库域文档（M5 端点落地）：kind ∈ script/asset/batch，doc = 条目 JSON
@@ -189,28 +190,35 @@ def load_project(project_id: str) -> dict | None:
 # --------------------------------------------------------------
 # 任务登记（task.py 消费）
 # --------------------------------------------------------------
-def insert_task_record(task_id: str, task_type: str, status: str) -> None:
+def insert_task_record(task_id: str, task_type: str, status: str, project_id: str = "") -> None:
     from sqlalchemy import insert  # noqa: PLC0415
 
     tbl = _table("task_registry")
     with get_engine().begin() as conn:
         conn.execute(
-            insert(tbl).values(task_id=task_id, task_type=task_type, status=status, created_at=_now())
+            insert(tbl).values(
+                task_id=task_id,
+                task_type=task_type,
+                status=status,
+                project_id=project_id,
+                created_at=_now(),
+            )
         )
 
 
-def list_recent_tasks(limit: int = 50) -> list[dict]:
+def list_recent_tasks(limit: int = 50, project_id: str | None = None) -> list[dict]:
     from sqlalchemy import select  # noqa: PLC0415
 
     tbl = _table("task_registry")
+    stmt = select(
+        tbl.c.task_id, tbl.c.task_type, tbl.c.status, tbl.c.project_id, tbl.c.created_at
+    ).order_by(tbl.c.seq.desc())
+    if project_id:
+        stmt = stmt.where(tbl.c.project_id == project_id)
     with get_engine().connect() as conn:
-        rows = conn.execute(
-            select(tbl.c.task_id, tbl.c.task_type, tbl.c.status, tbl.c.created_at)
-            .order_by(tbl.c.seq.desc())
-            .limit(limit)
-        ).all()
+        rows = conn.execute(stmt.limit(limit)).all()
     return [
-        {"task_id": r[0], "task_type": r[1], "status": r[2], "created_at": r[3]}
+        {"task_id": r[0], "task_type": r[1], "status": r[2], "project_id": r[3], "created_at": r[4]}
         for r in reversed(rows)
     ]
 

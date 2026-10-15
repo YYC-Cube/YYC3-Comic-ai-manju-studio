@@ -1,10 +1,9 @@
 /**
- * 生产任务 API（M2 真实端点 + M3 遗留收敛）
- * 真实可用（M1/M2 后端）：入队 / 状态查询 / 近期登记
- * 遗留 listTasks / subscribeTaskStream：use-task-store 消费中，幻影端点由 withFallback 降级，
- *   TODO(M5) 业务形状列表与 SSE 流端点随真实遥测落地后切换 /factory/tasks 域
- *   （M4 评估：真遥测依赖 Celery 事件桥 + ReAct-C 九步链路字段 + 登记持久化，半适配会伪造空字段，整体顺延 M5）
- * M3 退役：getTask（零消费，详情由 getTaskStatus 承接）
+ * 生产任务 API（M2 真实端点 + M5 真遥测切换）
+ * 真实可用：入队 / 状态查询 / 近期登记 / board 业务形状列表 / SSE stream 实时推送
+ * M5：listTasks/subscribeTaskStream 由幻影端点切换 /factory/tasks/{board,stream}
+ *   （registry + AsyncResult → ProductionTask；进度按状态阶粗粒度映射不伪造；
+ *     九步步迹仍由前端确定性推导——引擎未产出步迹数据，tasks 页「步迹演示」Badge 保留）
  */
 import { API_BASE, request } from "@/api/client";
 import type { ProductionTask } from "@/types/task";
@@ -49,34 +48,30 @@ export function listRecentTasks(): Promise<{ items: unknown[]; note: string }> {
   return request("/api/v1/factory/tasks");
 }
 
-/* -------------------- 遗留骨架（TODO M3，勿在联通期调用真实路径） -------------------- */
+/* -------------------- M5 真遥测（board + SSE stream） -------------------- */
 
-/** 任务列表（可按项目过滤）—— TODO(M3) 业务形状对齐后切换 /factory/tasks */
-export function listTasks(projectId?: string): Promise<ProductionTask[]> {
+/** 任务列表（可按项目过滤）—— M5 起切真：GET /factory/tasks/board（ProductionTask[]） */
+export async function listTasks(projectId?: string): Promise<ProductionTask[]> {
   const query = projectId
     ? `?project_id=${encodeURIComponent(projectId)}`
     : "";
-  return request<ProductionTask[]>(`/api/v1/tasks${query}`);
-}
-
-/** 任务详情 —— TODO(M3) */
-export function getTask(taskId: string): Promise<ProductionTask> {
-  return request<ProductionTask>(
-    `/api/v1/tasks/${encodeURIComponent(taskId)}`
+  const res = await request<{ items: ProductionTask[] }>(
+    `/api/v1/factory/tasks/board${query}`
   );
+  return res.items ?? [];
 }
 
 /**
- * 订阅任务进度 SSE 流 —— TODO(M3) 后端流端点落地后切换
- * 返回 close 函数用于组件卸载时断开连接
+ * 订阅任务进度 SSE 流 —— M5 起切真：GET /factory/tasks/stream（2s 快照比对，变化即推）
+ * 跨源携带会话 Cookie（withCredentials）；返回 close 函数用于组件卸载时断开连接
  */
 export function subscribeTaskStream(
   projectId: string,
   onEvent: (task: ProductionTask) => void,
   onStatusChange?: (connected: boolean) => void
 ): () => void {
-  const url = `${API_BASE}/api/v1/tasks/stream?project_id=${encodeURIComponent(projectId)}`;
-  const source = new EventSource(url);
+  const url = `${API_BASE}/api/v1/factory/tasks/stream?project_id=${encodeURIComponent(projectId)}`;
+  const source = new EventSource(url, { withCredentials: true });
 
   source.onopen = () => onStatusChange?.(true);
 
