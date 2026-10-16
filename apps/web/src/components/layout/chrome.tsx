@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { OverlayHost } from "@/components/overlays/overlay-host";
 import { AUTH_ROUTES } from "@/lib/auth-routes";
 
 export function Chrome({ children }: { children: ReactNode }) {
@@ -26,6 +27,8 @@ export function Chrome({ children }: { children: ReactNode }) {
         <Topbar />
         <main className="mx-auto max-w-[1400px] p-6">{children}</main>
       </div>
+      {/* 全局浮层三件套（M5-R6）：W1 协同中枢 / W2 认知浮窗 / 议事厅模态，仅受控壳挂载 */}
+      <OverlayHost />
     </>
   );
 }

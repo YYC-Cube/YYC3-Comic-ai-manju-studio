@@ -5,7 +5,7 @@
  * 真链路：样本/记忆端点缺位——withFallback 降级演示数据 + Badge 留痕（端点形状见 api/management.ts）；
  *         审核通过/拒绝/合规遗忘为演示态本地翻转 + toast 明示「未持久化」（不伪造服务端生效）；
  *         Prompt 版本与灰度滑杆为演示态本地状态（发布端点缺位，改动不落库）；
- *         Agent 卡「查看轨迹」认知浮层属 R6 浮层批次——toast 明示
+ *         Agent 卡「查看轨迹」→ W2 认知浮窗真链路（M5-R6 已接通）
  * 布局：头部（徽章 + 四 Tab）→ 健康总览 / Learning Inbox / 记忆管理 / 提示词工程
  */
 import { useEffect, useState } from "react";
@@ -23,6 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { useApiData } from "@/hooks/use-api-data";
 import { AGENTS_LIST } from "@/lib/agents";
+import { useOverlaysStore } from "@/lib/overlays-store";
 
 /** 演示数据（端点未落地时降级展示，页面挂徽章留痕） */
 const DEMO_SAMPLES: LearningSample[] = [
@@ -92,6 +93,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 export default function AdminAgentsPage() {
   const { toast } = useToast();
+  const openW2 = useOverlaysStore((s) => s.openW2);
   const [activeTab, setActiveTab] = useState<TabId>("inbox");
   const [canaryRollout, setCanaryRollout] = useState(50);
 
@@ -191,14 +193,7 @@ export default function AdminAgentsPage() {
               <button
                 key={ag.id}
                 type="button"
-                onClick={() =>
-                  // 认知轨迹浮层属 R6 浮层批次
-                  toast({
-                    title: "认知轨迹浮层随 R6 批次落地",
-                    description: `${ag.name} 的 ReAct-C 九步轨迹将以全局浮层呈现`,
-                    variant: "default",
-                  })
-                }
+                onClick={() => openW2(ag.id)}
                 className="group cursor-pointer space-y-2 rounded-xl border border-border bg-card p-3.5 text-left transition-all hover:border-primary"
               >
                 <div className="flex items-center justify-between">

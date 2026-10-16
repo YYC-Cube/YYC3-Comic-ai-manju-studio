@@ -43,16 +43,17 @@ export const COUNSEL_ROLE_AGENT_IDS = {
 
 /**
  * ReAct-C 九步闭环管线（步序 → 执行 Agent 的唯一事实源）
- * 与 mock/production.ts MOCK_TASKS 的 stepsTrace 步序一致
+ * 与 mock/production.ts MOCK_TASKS 的 stepsTrace 步序一致；
+ * desc 步述于 M5-R6 自原型 tokens REACT_C_STEPS 对齐迁入（W2 认知浮窗消费）
  */
 export const NINE_STEP_PIPELINE = [
-  { step: 1, name: "安全过滤", agentId: "zhiyun-shouhu" },
-  { step: 2, name: "意图路由", agentId: "yanqi-qianxing" },
-  { step: 3, name: "RAG注入", agentId: "yushu-wanwu" },
-  { step: 4, name: "分析预测", agentId: "yujian-xianzhi" },
-  { step: 5, name: "报告润色", agentId: "chuangxiang-lingyun" },
-  { step: 6, name: "全局决策", agentId: "yuanqi-tianshu" },
-  { step: 7, name: "质量校验", agentId: "gewu-zongshi" },
-  { step: 8, name: "审计脱敏", agentId: "zhiyun-shouhu" },
-  { step: 9, name: "画像更新", agentId: "zhiyu-bole" },
+  { step: 1, name: "安全过滤", agentId: "zhiyun-shouhu", desc: "敏感词、版权、合规词库扫描" },
+  { step: 2, name: "意图路由", agentId: "yanqi-qianxing", desc: "用户输入语义解析与意图路由" },
+  { step: 3, name: "RAG注入", agentId: "yushu-wanwu", desc: "Milvus 向量检索与三层记忆提取" },
+  { step: 4, name: "分析预测", agentId: "yujian-xianzhi", desc: "语枢万物+预见先知并行分析" },
+  { step: 5, name: "报告润色", agentId: "chuangxiang-lingyun", desc: "创意增强与提示词优化" },
+  { step: 6, name: "全局决策", agentId: "yuanqi-tianshu", desc: "统一编排调度并确定执行方案" },
+  { step: 7, name: "质量校验", agentId: "gewu-zongshi", desc: "打分与门禁校验（<80回环Step5）" },
+  { step: 8, name: "审计脱敏", agentId: "zhiyun-shouhu", desc: "敏感信息擦除与操作全留痕" },
+  { step: 9, name: "画像更新", agentId: "zhiyu-bole", desc: "用户偏好与模型权重推荐更新" },
 ] as const;
