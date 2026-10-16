@@ -6,13 +6,20 @@
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
+  BrainCircuit,
   Clapperboard,
   Coins,
+  Database,
   Film,
   FolderKanban,
   Gauge,
+  KeyRound,
   LayoutDashboard,
+  LibraryBig,
   ListChecks,
+  MessagesSquare,
+  Scale,
+  ScrollText,
   Send,
   ShieldCheck,
   TrendingUp,
@@ -28,20 +35,42 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-/** 产线作业动线排序：驾驶舱 → 生产域（剧本→分镜→资产→批量→质检→任务）→ 后期/管理域 */
-const NAV_ITEMS: NavItem[] = [
-  { label: "指挥中心", href: "/dashboard", icon: Gauge },
-  { label: "剧本工作台", href: "/script", icon: BookOpen },
-  { label: "分镜工作台", href: "/storyboard", icon: Clapperboard },
-  { label: "资产管理", href: "/assets", icon: Users },
-  { label: "批量生成", href: "/production", icon: LayoutDashboard },
-  { label: "质量检测", href: "/qa", icon: ShieldCheck },
-  { label: "任务监控", href: "/tasks", icon: ListChecks },
-  { label: "时间线剪辑", href: "/video", icon: Film },
-  { label: "推送分发", href: "/publish", icon: Send },
-  { label: "项目管理", href: "/project", icon: FolderKanban },
-  { label: "成本核算", href: "/cost", icon: Coins },
-  { label: "运营数据", href: "/analytics", icon: TrendingUp },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+/** 产线作业动线排序：驾驶舱 → 生产域（剧本→分镜→资产→批量→质检→任务）→ 后期/管理域（P2 迁入） */
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: "产线作业",
+    items: [
+      { label: "指挥中心", href: "/dashboard", icon: Gauge },
+      { label: "剧本工作台", href: "/script", icon: BookOpen },
+      { label: "分镜工作台", href: "/storyboard", icon: Clapperboard },
+      { label: "资产管理", href: "/assets", icon: Users },
+      { label: "批量生成", href: "/production", icon: LayoutDashboard },
+      { label: "质量检测", href: "/qa", icon: ShieldCheck },
+      { label: "任务监控", href: "/tasks", icon: ListChecks },
+      { label: "时间线剪辑", href: "/video", icon: Film },
+      { label: "推送分发", href: "/publish", icon: Send },
+      { label: "项目管理", href: "/project", icon: FolderKanban },
+      { label: "成本核算", href: "/cost", icon: Coins },
+      { label: "运营数据", href: "/analytics", icon: TrendingUp },
+    ],
+  },
+  {
+    title: "管理域",
+    items: [
+      { label: "设定集图谱", href: "/lore", icon: ScrollText },
+      { label: "剧集中心", href: "/series", icon: LibraryBig },
+      { label: "协同批注", href: "/collab", icon: MessagesSquare },
+      { label: "智能体训练", href: "/admin/agents", icon: BrainCircuit },
+      { label: "权限矩阵", href: "/admin/permission", icon: KeyRound },
+      { label: "合规中心", href: "/admin/compliance", icon: Scale },
+      { label: "RAG 语料", href: "/admin/rag", icon: Database },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -59,26 +88,35 @@ export function Sidebar() {
         <span className="ml-1 text-xs text-zinc-500">漫剧工场</span>
       </div>
 
-      {/* 导航 */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-zinc-800 font-medium text-white"
-                  : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
-            </Link>
-          );
-        })}
+      {/* 导航（分组：产线作业 / 管理域） */}
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.title}>
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+              {group.title}
+            </p>
+            <div className="space-y-1">
+              {group.items.map(({ label, href, icon: Icon }) => {
+                const active = pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                      active
+                        ? "bg-zinc-800 font-medium text-white"
+                        : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* 底部：品牌与 NAS 状态 */}
