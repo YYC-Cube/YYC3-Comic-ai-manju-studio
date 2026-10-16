@@ -1,5 +1,5 @@
 /**
- * Auth 域公开路由（M4）—— middleware / Chrome / AuthGate 三处消费的唯一事实源
+ * Auth 域公开路由（M4）—— proxy（原 middleware，Next 16 改名）/ Chrome / AuthGate 三处消费的唯一事实源
  * 公开路由：无 Sidebar/Topbar 壳的全屏页；未登录可访问
  */
 export const AUTH_ROUTES = [

@@ -23,7 +23,7 @@ const AUTH_ROUTES = [
 const AUTH_HOME = "/dashboard";
 const SESSION_COOKIE = "yyc3_session";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = AUTH_ROUTES.some((p) => pathname.startsWith(p));
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
