@@ -5,6 +5,7 @@
  */
 import { cn } from "@/lib/utils";
 import {
+  BadgePercent,
   BookOpen,
   BrainCircuit,
   Clapperboard,
@@ -15,9 +16,12 @@ import {
   Gauge,
   KeyRound,
   LayoutDashboard,
+  LayoutTemplate,
   LibraryBig,
   ListChecks,
   MessagesSquare,
+  Mic,
+  Music,
   Scale,
   ScrollText,
   Send,
@@ -53,6 +57,10 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "质量检测", href: "/qa", icon: ShieldCheck },
       { label: "任务监控", href: "/tasks", icon: ListChecks },
       { label: "时间线剪辑", href: "/video", icon: Film },
+      { label: "配音导演台", href: "/voice", icon: Mic },
+      { label: "BGM 情绪库", href: "/music", icon: Music },
+      { label: "模板中心", href: "/templates", icon: LayoutTemplate },
+      { label: "商业化", href: "/ad", icon: BadgePercent },
       { label: "推送分发", href: "/publish", icon: Send },
       { label: "项目管理", href: "/project", icon: FolderKanban },
       { label: "成本核算", href: "/cost", icon: Coins },
