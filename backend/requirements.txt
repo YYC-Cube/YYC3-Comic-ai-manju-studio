@@ -6,7 +6,7 @@
 
 # ── 核心依赖（backend 模块直接 import）──
 numpy==2.5.3          # face_encoder 特征向量 / style_keeper 风格向量运算
-pillow==12.3.0        # style_keeper 候选帧色彩矩与直方图真实分析（红线能力）
+pillow==13.0.0        # style_keeper 候选帧色彩矩与直方图真实分析（红线能力）
 
 # ── 可选重依赖（真实模式 face_encoder，缺失时自动降级哈希模式并显式留证）──
 # 安装真实模式时解除注释（Mac 本地体验可保持降级模式）：
